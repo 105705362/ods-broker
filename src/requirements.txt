@@ -1,0 +1,8 @@
+Flask
+werkzeug
+Flask-HTTPAuth
+SQLAlchemy
+Flask-SQLAlchemy
+flask-mysqldb
+Flask-OAuthlib
+git+https://github.com/ChaosEternal/vcap-config.git
