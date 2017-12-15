@@ -1,13 +1,10 @@
 import json, sys
+gm = Manager()
+last_ops = gm.dict()
 
 from flask import Blueprint, request, g, abort, jsonify
 
-from app import db
-
 from app import app
-
-from app.service_broker.models import CldInfo, SrvcInst, SrvcBind
-from app.service_broker.cloud_info import make_cld_info, normalize_uri
 
 from app.exceptions import *
 
@@ -16,6 +13,30 @@ from app.metadata import *
 from app.auth import auth
 
 service_broker = Blueprint('srvbrk', __name__, url_prefix="/")
+
+from functools import wraps
+
+def prepare_adapter(f):
+    @wraps(f)
+    def wrpr(*args, **kargs):
+        if request.method in ('PUT', 'PATCH'):
+            data = request.get_json()
+            service_id = data.get('service_id')
+            plan_id = data.get('plan_id')
+        else:
+            service_id = request.args.get('service_id')
+            plan_id = request.args.get('plan_id')
+        if all(service_id is not None,
+               plan_id is not None,
+               service_id in all_services,
+               'plans' in all_services[service_id],
+               plan_id in all_services[service_id]['plans']):
+            request.adapter_cls = all_services[service_id][plan_id]["adapter"]
+        else:
+            request.adapter_cls = None
+        return f(*args, **kargs)
+    return wrpr
+        
 
 @service_broker.route('/v2/catalog', methods=['GET'])
 @auth.login_required
@@ -35,82 +56,96 @@ def catalog():
     """
     api_version = request.headers.get('X-Broker-Api-Version')
     cloud_api_location = request.headers.get('X-Api-Info-Location', None)
-    cld = None
-    if cloud_api_location is not None:
-        cld = make_cld_info(cloud_api_location)
-        cld_exists = CldInfo.query.filter_by(cld_loc_info = cloud_api_location).first()
-        if cld_exists is not None:
-            db.session.delete(cld_exists)
-            db.session.commit()
-        db.session.add(cld)
-        db.session.commit()
-
+      
     if not api_version or not checkversion(api_version):
         raise ServiceBrokerException(409, "Missing or incompatible %s. Expecting version %0.1f or later" % (X_BROKER_API_VERSION_NAME, X_BROKER_API_VERSION))
 
-    def patch_service(s, cld):
-        rs = dict(s)
-        if cld is not None:
-            rs["dashboard_client"] = {"id": "%s-%s"%(rs["id"], cld.cld_oauth_id),
-                                      "secret": cld.cld_oauth_sec,
-                                      "redirect_uri": normalize_uri(app.config["VCAP_APP_URI"])}
-        return rs
-    return jsonify({"services": [patch_service(x, cld) for x  in vm_services]})
+    return jsonify({"services": vm_services})
 
-
-@service_broker.route('/v2/service_instances/<instance_id>', methods=['PUT'])
+@service_broker.route('/v2/service_instances/<instance_id>', methods=['PUT', 'PATCH'])
 @auth.login_required
+@prepare_adapter
 def provision(instance_id):
-    data = request.get_json()
-    if data is None or not data.has_key('service_id'):
-        raise ServiceBrokerException(422, "Invalid request data")
+    if request.args.get("accepts_incomplete", "false") != "true":
+        return jsonify({"error": "AsyncRequired",
+                        "description": "This service plan requires client support for asynchronous service operations."
+            }),422
+    bosh_env = app.config["BOSH"]
+    ada = request.adapter_cls(instance_id, bosh_env)
+    n, t = ada.workflow("deploy", None)
 
-    cloud_api_location = request.headers.get('X-Api-Info-Location', None)
-    cld_info = None
-    if cloud_api_location is not None:
-        cld = CldInfo.query.filter_by(cld_loc_info = cloud_api_location).first()
-        if cld is not None:
-            cld_info = cld.cld_loc_info
+    if n == "finish":
+        return jsonify({}), 200
+    if n == "error":
+        return jsonify({"description": "%s:%s Failed"%(n,t)}), 503
+    return jsonify({"operation": "%s:%s"%(n,t)}), 202
 
-    srvc_inst = SrvcInst(instance_id, data.get('service_id'), data.get("plan_id"), json.dumps(data), cld_info)
-    db.session.add(srvc_inst)
-    db.session.commit()
-
-    return jsonify({"dashboard_url": normalize_uri(app.config["VCAP_APP_URI"]) +
-                    app.config['DASHBOARD_PREFIX'] +
-                    app.config['SERVICE_INSTANCE_URI'].format(instance_id=instance_id)}), 201
+@service_broker.route('/v2/service_instances/<instance_id>/last_operation', methods=['GET'])
+@auth.login_required
+@prepare_adapter
+def poll(instance_id):
+    op = request.args.get("operation")
+    if hasattr(g, 'last_ops'):
+        last_ops = g.last_ops
+    else:
+        g.last_ops = {}
+        last_ops = g.last_ops
+    n,t = last_ops.pop(op, op.split(":"))
+    bosh_env = app.config["BOSH"]
+    if request.adapter_cls is None:
+        return jsonify({"state":"failed", "description": "can't find plan_id"}), 200
+    ada = request.adapter_cls(instance_id, bosh_env)
+    n,t = ada.workflow(n, int(t))
+    r = {"description": "%s %s"%(n,t)}
+    if op.find("deploy") == 0:
+        if n == "finish":
+            r["state"] = "succeeded"
+            return jsonify(r), 200
+        if n == "error":
+            r["state"] = "failed"
+            return jsonify(r), 200
+        r["state"] = "in progress"
+        last_ops[op]=(n,t)
+        return jsonify(r), 200
+    if op.find("delete") ==0:
+        if n == "finish":
+            return jsonify({}), 410
+        if n == "error":
+            r["state"] = "failed"
+            return jsonify(r), 200
+        r["state"] = "in progress"
+        last_ops[op]=(n,t)
+        return jsonify(r), 200
 
 @service_broker.route('/v2/service_instances/<instance_id>', methods=['DELETE'])
 @auth.login_required
+@prepare_adapter
 def deprovision(instance_id):
-    
-    #    if not service_instances.has_key(instance_id):
-    #        raise ServiceBrokerException(410, "instance not found")
+    bosh_env = app.config["BOSH"]
+    if request.adapter_cls is None:
+        return jsonify({"state":"failed", "description": "can't find plan_id"}), 503
+    ada = request.adapter_cls(instance_id, bosh_env)
+    n, t = ada.workflow("deploy", None)
 
-    srvc_inst = SrvcInst.query.filter_by(srvc_inst_id = instance_id).first()
-    db.session.delete(srvc_inst)
-    db.session.commit()
-    return jsonify({}), 200
+    if n == "finish":
+        return jsonify({}), 200
+    if n == "error":
+        return jsonify({"description": "%s:%s Failed"%(n,t)}), 503
+    return jsonify({"operation": "%s:%s"%(n,t)}), 202
+    
+    
 
 @service_broker.route('/v2/service_instances/<instance_id>/service_bindings/<binding_id>', methods=['PUT'])
 @auth.login_required
+@prepare_adapter
 def bind(instance_id, binding_id):
-    print >> sys.stderr, request.data
-    data = request.get_json()
-    if data is None:
-        raise ServiceBrokerException(422, "invalid request data")
-    
-
-    srvc_inst = SrvcInst.query.filter_by(srvc_inst_id = instance_id).first()
-    plan = srvc_inst.plan
-    plan_def = plan_detail[plan]
-
-    srvc_bind = SrvcBind(binding_id, instance_id, data.get('service_id'),  json.dumps(data))
-    db.session.add(srvc_bind)
-    db.session.commit()
-
+    bosh_env = app.config["BOSH"]
+    if request.adapter_cls is None:
+        return jsonify({"state":"failed", "description": "can't find plan_id"}), 503
+    ada = request.adapter_cls(instance_id, bosh_env)
+    creds = ada.get_creds()
     return jsonify(
-        plan_def
+        creds
     ), 200
 
 @service_broker.route('/v2/service_instances/<instance_id>/service_bindings/<binding_id>', methods=['DELETE'])
@@ -118,9 +153,6 @@ def bind(instance_id, binding_id):
 def unbind(instance_id, binding_id):
     print >> sys.stderr, request.data
 
-    srvc_bind = SrvcBind.query.filter_by(bind_id = binding_id).filter_by(srvc_inst_id = instance_id).first()
-    db.session.delete(srvc_bind)
-    db.session.commit()
 
     return jsonify(
         {}

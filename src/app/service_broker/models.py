@@ -36,6 +36,9 @@ class SrvcInst(db.Model):
     plan          = db.Column(db.String(128), nullable=False)
     args          = db.Column(db.TEXT())
     cld_info      = db.Column(db.String(255))
+    deployment_id = db.Column(db.String(255))
+    srvc_prv_info = db.Column(db.TEXT())
+    last_op       = db.Column(db.String(255))
 
     def __init__(self
                  ,srvc_inst_id
@@ -43,12 +46,18 @@ class SrvcInst(db.Model):
                  ,plan
                  ,args
                  ,cld_info
+                 ,deployment_id = None
+                 ,srvc_prv_info = None
+                 ,last_op = "deploy"
     ):
         self.srvc_inst_id  = srvc_inst_id
         self.srvc_id       = srvc_id
         self.plan          = plan
         self.args          = args
         self.cld_info      = cld_info
+        self.deployment_id = deployment_id
+        self.srvc_prv_info = srvc_prv_info
+        self.last_op       = last_op
     def __repr__(self):
         return "<SrvInst %s>"%self.srvid
 
