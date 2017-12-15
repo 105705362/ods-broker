@@ -8,7 +8,7 @@ _all_catalogues = [getattr(getattr(adapters, m), 'service_catalogue')
                  for m in adapters.__all__
                  if 'service_catalogue' in dir(getattr(adapters, m))]
 print(_all_catalogues)
-print( adapters.__all__)
+print(( adapters.__all__))
 print([dir(getattr(adapters, m)) for m in adapters.__all__])
 
 _merge = lambda l, r: {k: _merge(r.get(k), l.get(k) )

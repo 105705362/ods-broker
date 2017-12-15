@@ -13,12 +13,12 @@ def _unfoldservice(d, t = "s"):
         return [ dict(chain([("id", s)],
                            [(k, v[k]) for k in _srv_keys],
                            [("plans", unfoldservice(v["plans"], 'p') )]))
-                 for s,v in d.items() 
+                 for s,v in list(d.items()) 
         ]
     else:
         return [ dict(chain([("id", s)],
                            [(k, v[k]) for k in _plan_keys]))
-                 for s,v in d.items()
+                 for s,v in list(d.items())
         ]
     
     

@@ -151,7 +151,7 @@ def bind(instance_id, binding_id):
 @service_broker.route('/v2/service_instances/<instance_id>/service_bindings/<binding_id>', methods=['DELETE'])
 @auth.login_required
 def unbind(instance_id, binding_id):
-    print >> sys.stderr, request.data
+    print(request.data, file=sys.stderr)
 
 
     return jsonify(
