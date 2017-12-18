@@ -2,7 +2,6 @@ from itertools import chain
 from functools import reduce
 import adapters
 
-DASHBOARD_PREFIX="/cfbroker"
 
 _all_catalogues = [getattr(getattr(adapters, m), 'service_catalogue')
                  for m in adapters.__all__
