@@ -2,3 +2,5 @@
 *.pyc
 **/vendor/*
 *.zip
+/src/adapters/**
+!/src/adapters/__init__.py
