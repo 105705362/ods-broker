@@ -71,7 +71,7 @@ def provision(instance_id):
         return jsonify({"error": "AsyncRequired",
                         "description": "This service plan requires client support for asynchronous service operations."
             }),422
-    ada = request.adapter_cls(instance_id, bosh_env)
+    ada = request.adapter_cls(instance_id)
     n, t = ada.workflow("deploy", None)
 
     if n == "finish":
@@ -93,7 +93,7 @@ def poll(instance_id):
     n,t = last_ops.pop(op, op.split(":"))
     if request.adapter_cls is None:
         return jsonify({"state":"failed", "description": "can't find plan_id"}), 200
-    ada = request.adapter_cls(instance_id, bosh_env)
+    ada = request.adapter_cls(instance_id)
     n,t = ada.workflow(n, int(t))
     r = {"description": "%s %s"%(n,t)}
     if op.find("deploy") == 0:
@@ -122,7 +122,7 @@ def poll(instance_id):
 def deprovision(instance_id):
     if request.adapter_cls is None:
         return jsonify({"state":"failed", "description": "can't find plan_id"}), 503
-    ada = request.adapter_cls(instance_id, bosh_env)
+    ada = request.adapter_cls(instance_id)
     n, t = ada.workflow("deploy", None)
 
     if n == "finish":
@@ -139,7 +139,7 @@ def deprovision(instance_id):
 def bind(instance_id, binding_id):
     if request.adapter_cls is None:
         return jsonify({"state":"failed", "description": "can't find plan_id"}), 503
-    ada = request.adapter_cls(instance_id, bosh_env)
+    ada = request.adapter_cls(instance_id)
     creds = ada.get_creds()
     return jsonify(
         creds
