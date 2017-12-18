@@ -32,6 +32,7 @@ def prepare_adapter(f):
                'plans' in all_services[service_id],
                plan_id in all_services[service_id]['plans']):
             request.adapter_cls = all_services[service_id][plan_id]["adapter"]
+            request.adapter_cls._env = app.config["BOSH"]
         else:
             request.adapter_cls = None
         return f(*args, **kargs)
@@ -70,7 +71,6 @@ def provision(instance_id):
         return jsonify({"error": "AsyncRequired",
                         "description": "This service plan requires client support for asynchronous service operations."
             }),422
-    bosh_env = app.config["BOSH"]
     ada = request.adapter_cls(instance_id, bosh_env)
     n, t = ada.workflow("deploy", None)
 
@@ -91,7 +91,6 @@ def poll(instance_id):
         g.last_ops = {}
         last_ops = g.last_ops
     n,t = last_ops.pop(op, op.split(":"))
-    bosh_env = app.config["BOSH"]
     if request.adapter_cls is None:
         return jsonify({"state":"failed", "description": "can't find plan_id"}), 200
     ada = request.adapter_cls(instance_id, bosh_env)
@@ -121,7 +120,6 @@ def poll(instance_id):
 @auth.login_required
 @prepare_adapter
 def deprovision(instance_id):
-    bosh_env = app.config["BOSH"]
     if request.adapter_cls is None:
         return jsonify({"state":"failed", "description": "can't find plan_id"}), 503
     ada = request.adapter_cls(instance_id, bosh_env)
@@ -139,7 +137,6 @@ def deprovision(instance_id):
 @auth.login_required
 @prepare_adapter
 def bind(instance_id, binding_id):
-    bosh_env = app.config["BOSH"]
     if request.adapter_cls is None:
         return jsonify({"state":"failed", "description": "can't find plan_id"}), 503
     ada = request.adapter_cls(instance_id, bosh_env)
