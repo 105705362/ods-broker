@@ -112,7 +112,7 @@ def deprovision(instance_id):
     if request.adapter_cls is None:
         return jsonify({"state":"failed", "description": "can't find plan_id"}), 503
     ada = request.adapter_cls(instance_id)
-    n, t = ada.workflow("deploy", None)
+    n, t = ada.workflow("delete", None)
 
     if n == "finish":
         return jsonify({}), 200
