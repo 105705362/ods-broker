@@ -2,8 +2,8 @@ import ods_adapter
 from bosh_api import *
 import yaml
 from jsonpath_ng.ext import parse
-
-__d = """---
+class SampleOdsAdapter(ods_adapter.OdsAdapter):
+    __d = """---
 name: learn-bosh-2
 
 releases:
@@ -67,8 +67,6 @@ stemcells:
   os: ubuntu-trusty
   version: "3468.5"
 """
-
-class SampleOdsAdapter(ods_adapter.OdsAdapter):
     _manifest = yaml.load(__d)
     _job = 'app'
     _must_alivejob = ['app']

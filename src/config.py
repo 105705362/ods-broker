@@ -24,7 +24,7 @@ bosh_env_ip = os.getenv("BOSH_ENVIRONMENT")
 bosh_client = os.getenv("BOSH_CLIENT")
 bosh_client_secret = os.getenv("BOSH_CLIENT_SECRET")
 
-_e_bosh_cacert = os.getenv("BOSH_CACERT")
+_e_bosh_cacert = os.getenv("BOSH_CA_CERT")
 if os.path.exists(_e_bosh_cacert):
     bosh_cacert = _e_bosh_cacert
 else:

@@ -6,3 +6,4 @@ git+https://github.com/ChaosEternal/vcap-config.git
 git+https://github.com/ChaosEternal/python-bosh-api.git
 git+https://github.com/ChaosEternal/ods-adapter.git
 pyyaml
+jsonpath_ng
