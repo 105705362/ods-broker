@@ -67,13 +67,14 @@ stemcells:
   os: ubuntu-trusty
   version: "3468.5"
 """
-    _manifest = yaml.load(__d)
+
     _job = 'app'
     _must_alivejob = ['app']
     _render_rules = [("$.instance_groups[?name=app]..properties.password", "adadasdda")]
     _info_fetcher = {"password":"$.instance_groups[?name=app]..jobs[?name=app].properties.password",
                      "port":"$.instance_groups[?name=app]..jobs[?name=app].properties.port"}
     def __init__(self, deploy_id, env=None):
+        self._manifest = yaml.load(self.__d)
         if env is not None:
             self._env = env
         name_in_manifest = parse("$.name").find(self._manifest)[0].value
