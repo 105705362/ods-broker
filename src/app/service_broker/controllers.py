@@ -1,19 +1,15 @@
 import json, sys
-
 from flask import Blueprint, request, g, abort, jsonify
-
 from app import app
-
 from app.exceptions import *
-
 from app.metadata import *
-
 from app.auth import auth
+from functools import wraps
+from werkzeug.contrib.cache import SimpleCache
+
+last_ops = SimpleCache()
 
 service_broker = Blueprint('srvbrk', __name__, url_prefix="/")
-
-from functools import wraps
-
 def prepare_adapter(f):
     @wraps(f)
     def wrpr(*args, **kargs):
@@ -83,12 +79,7 @@ def provision(instance_id):
 @prepare_adapter
 def poll(instance_id):
     op = request.args.get("operation")
-    if hasattr(g, 'last_ops'):
-        last_ops = g.last_ops
-    else:
-        g.last_ops = {}
-        last_ops = g.last_ops
-    n,t = last_ops.pop(op, op.split(":"))
+    n,t = (lambda x, y: x if x is not None else y)(last_ops.get(op), op.split(":"))
     if request.adapter_cls is None:
         return jsonify({"state":"failed", "description": "can't find plan_id"}), 200
     ada = request.adapter_cls(instance_id)
@@ -102,7 +93,7 @@ def poll(instance_id):
             r["state"] = "failed"
             return jsonify(r), 200
         r["state"] = "in progress"
-        last_ops[op]=(n,t)
+        last_ops.set(op,(n,t))
         return jsonify(r), 200
     if op.find("delete") ==0:
         if n == "finish":
@@ -111,7 +102,7 @@ def poll(instance_id):
             r["state"] = "failed"
             return jsonify(r), 200
         r["state"] = "in progress"
-        last_ops[op]=(n,t)
+        last_ops.set(op,(n,t))
         return jsonify(r), 200
 
 @service_broker.route('/v2/service_instances/<instance_id>', methods=['DELETE'])
