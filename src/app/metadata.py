@@ -1,6 +1,8 @@
 X_BROKER_API_VERSION = (2, 3)
 X_BROKER_API_VERSION_NAME = 'X-Broker-Api-Version'
 
+from app import app
+
 def _unfoldservice(d, t = "s"):
     _srv_keys = ('name',
              'description',
