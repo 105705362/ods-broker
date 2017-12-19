@@ -1,1 +1,1 @@
-curl -v -H "X-Broker-Api-Version: 2.3" http://$USER:$PASS@$URI/v2/service_instances/$SII/service_bindings/$BI -X DELETE -H "Content-Type: application/json"
+curl -v -H "X-Broker-Api-Version: 2.3" "http://$USER:$PASS@$URI/v2/service_instances/$SII/service_bindings/$BI?accepts_incomplete=true&plan_id=$PI&service_id=$SI" -X DELETE -H "Content-Type: application/json"
