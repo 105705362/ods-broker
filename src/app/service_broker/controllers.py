@@ -24,11 +24,11 @@ def prepare_adapter(f):
         else:
             service_id = request.args.get('service_id')
             plan_id = request.args.get('plan_id')
-        if all(service_id is not None,
-               plan_id is not None,
-               service_id in all_services,
-               'plans' in all_services[service_id],
-               plan_id in all_services[service_id]['plans']):
+        if all((service_id is not None,
+                plan_id is not None,
+                service_id in all_services,
+                'plans' in all_services[service_id],
+                plan_id in all_services[service_id]['plans'])):
             request.adapter_cls = all_services[service_id][plan_id]["adapter"]
             request.adapter_cls._env = app.config["BOSH"]
         else:
