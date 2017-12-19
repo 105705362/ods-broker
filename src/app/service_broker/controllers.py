@@ -1,6 +1,4 @@
 import json, sys
-gm = Manager()
-last_ops = gm.dict()
 
 from flask import Blueprint, request, g, abort, jsonify
 
