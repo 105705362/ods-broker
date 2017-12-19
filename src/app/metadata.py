@@ -26,7 +26,7 @@ def _unfoldservice(d, t = "s"):
     
     
 vm_services = _unfoldservice(app.config["ALL_SERVICE_CATALOGUES"])
-all_services = app.config(["ALL_SERVICE_CATALOGUES"])
+all_services = app.config["ALL_SERVICE_CATALOGUES"]
 
 def checkversion(x):
     client_version = [int(y) for y in  x.split('.')]
