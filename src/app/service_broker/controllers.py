@@ -29,7 +29,7 @@ def prepare_adapter(f):
                 service_id in all_services,
                 'plans' in all_services[service_id],
                 plan_id in all_services[service_id]['plans'])):
-            request.adapter_cls = all_services[service_id][plan_id]["adapter"]
+            request.adapter_cls = all_services[service_id]['plans'][plan_id]["adapter"]
             request.adapter_cls._env = app.config["BOSH"]
         else:
             request.adapter_cls = None
