@@ -25,7 +25,7 @@ bosh_client = os.getenv("BOSH_CLIENT")
 bosh_client_secret = os.getenv("BOSH_CLIENT_SECRET")
 
 _e_bosh_cacert = os.getenv("BOSH_CACERT")
-if os.path.exists.(_e_bosh_cacert):
+if os.path.exists(_e_bosh_cacert):
     bosh_cacert = _e_bosh_cacert
 else:
     import tempfile
