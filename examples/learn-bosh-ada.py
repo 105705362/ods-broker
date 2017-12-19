@@ -109,6 +109,7 @@ service_catalogue = {"962ce7a9-edc2-4bc6-9751-bb528acd9757":
                      {"name": "learn-bosh",
                       'description': "an example service",
                       'bindable': True,
+                      'plan_updateable', True,
                       'tags': ['ruby'],
                       'metadata': {"longDescription": "Simple example service"},
                       "plans": {
