@@ -5,22 +5,18 @@ from app import app
 from itertools import chain
 
 def _unfoldservice(d, t = "s"):
-    _srv_keys = ('name',
-             'description',
-             'bindable',
-             'tags',
-             'metadata'
+    _srv_keys_bl = ( 'plans',
     )
-    _plan_keys = ('name', 'description')
+    _plan_keys_bl = ('is_ods', 'adapter')
     if t == 's':
         return [ dict(chain([("id", s)],
-                           [(k, v[k]) for k in _srv_keys],
+                           [(k, v[k]) for k in v.keys() if k not in  _srv_keys_bl],
                            [("plans", _unfoldservice(v["plans"], 'p') )]))
                  for s,v in list(d.items()) 
         ]
     else:
         return [ dict(chain([("id", s)],
-                           [(k, v[k]) for k in _plan_keys]))
+                           [(k, v[k]) for k in v.keys() if k not in _plan_keys_bl]))
                  for s,v in list(d.items())
         ]
     
