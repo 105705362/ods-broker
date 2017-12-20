@@ -4,7 +4,7 @@ from app import app
 from app.exceptions import *
 from app.metadata import *
 from app.auth import auth
-from functools import wraps
+from functools import wraps, partial
 from werkzeug.contrib.cache import SimpleCache
 
 last_ops = SimpleCache()
@@ -25,8 +25,8 @@ def prepare_adapter(f):
                 service_id in all_services,
                 'plans' in all_services[service_id],
                 plan_id in all_services[service_id]['plans'])):
-            request.adapter_cls = all_services[service_id]['plans'][plan_id]["adapter"]
-            request.adapter_cls._env = app.config["BOSH"]
+            request.adapter_cls = partial(all_services[service_id]['plans'][plan_id]["adapter"],
+                                          env=app.config["BOSH"])
         else:
             request.adapter_cls = None
         return f(*args, **kargs)
