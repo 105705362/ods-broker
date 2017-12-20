@@ -123,7 +123,7 @@ service_catalogue = {"962ce7a9-edc2-4bc6-9751-bb528acd9757":
                               "name": "TEST Plan micro",
                               "is_ods": True,
                               "adapter": SampleOdsAdapter,
-                              "description": "Test mysql settings."}
+                              "description": "Test mysql settings."},
                           '21dc84ee-ae61-4017-8c77-367fc8ea1383': {
                               "name": "TEST_Plan_Small",
                               "is_ods": True,
